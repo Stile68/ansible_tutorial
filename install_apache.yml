@@ -1,0 +1,55 @@
+---
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: install apache + php
+    package:
+      name:
+        - "{{ apache_package }}"
+        - "{{ php_package }}"
+      state: latest
+      update_cache: yes
+
+
+
+  - name: enable mod
+    shell: a2enmod php7
+    when: ansible_distribution ==  "openSUSE Leap"
+
+  - name: ensure apache2  is running
+    service:
+      name: apache2
+      state: restarted
+      enabled: yes
+    when: ansible_distribution ==  "openSUSE Leap"
+
+  - name: Open port 80 for http access
+    shell:  firewall-cmd --zone=public --add-service=http --permanent
+ #   when: ansible_distribution ==  "openSUSE Leap"
+
+
+  - name: Restart the firewalld service to load in the firewall changes
+    service:
+      name: firewalld
+      state: restarted
+  #  when: ansible_distribution ==  "openSUSE Leap"
+
+  - name: Copy file with owner and permission, using symbolic representation
+    ansible.builtin.copy:
+      src: /root/myfiles/index.html
+      dest: /srv/www/htdocs/index.html
+      owner: wwwrun
+      group: wwwrun
+      mode: u=rw,g=r,o=r
+    when: ansible_distribution ==  "openSUSE Leap"
+
+
+  - name: ensure httpd  is running Centos
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+    when: ansible_distribution ==  "CentOS"
+
