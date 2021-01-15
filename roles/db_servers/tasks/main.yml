@@ -1,0 +1,18 @@
+- name: install mariadb  packages  Centos
+  tags: db,mariadb,centos
+  dnf:
+    name:
+      - mariadb-server
+      - php-mysqlnd
+    state: latest
+  when: ansible_distribution ==  "CentOS"
+
+
+- name: install mariadb  packages Opensuse
+  tags: db,mariadb,opensuse
+  zypper:
+    name:
+      - mariadb
+      - mariadb-tools
+    state: latest
+  when: ansible_distribution ==  "openSUSE Leap"

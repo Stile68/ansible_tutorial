@@ -1,0 +1,229 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates (Centos)
+    tags: always
+    dnf:
+      state: latest
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution ==  "CentOS"
+
+
+
+
+  - name: install update Opensuse
+    tags: always
+    zypper:
+       name: '*'
+       state: latest
+       update_cache: yes
+    changed_when: false
+    when: ansible_distribution ==  "openSUSE Leap"
+
+- hosts: workstations
+  become: true
+  tasks:
+
+  - name: install unzip
+    package:
+      name: unzip
+
+  - name: install terraform
+    unarchive:
+      src: /root/ansible_tutorial/files/terraform_0.14.4_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+      mode: 0775
+      owner: root
+      group: root
+      validate_certs: False
+
+
+
+# webservers
+
+- hosts: web_servers
+  become: true
+  tasks:
+
+  - name: install apache2 + php  packages
+    tags: apache,apache2,opensuse
+    zypper:
+       name:
+         - apache2
+         - apache2-mod_php7
+       state: latest
+       update_cache: yes
+    when: ansible_distribution ==  "openSUSE Leap"
+
+
+  - name: install httpd + php packages for  Centos
+    tags: apache,httpd,centos
+    dnf:
+       name:
+         - httpd
+         - php
+       state: latest
+       update_cache: yes
+    when: ansible_distribution ==  "CentOS"
+
+
+  - name: ensure httpd  is running Centos
+    tags: apache,httpd,centos
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+    when: ansible_distribution ==  "CentOS"
+
+# modifications
+  - name: enable mod
+    shell: a2enmod php7
+    when: ansible_distribution ==  "openSUSE Leap"
+
+  - name: ensure apache2  is running
+    service:
+      name: apache2
+      state: started
+      enabled: yes
+    when: ansible_distribution ==  "openSUSE Leap"
+
+  - name: Open port 80 for http access
+    shell:  firewall-cmd --zone=public --add-service=http --permanent
+
+
+
+  - name: Restart the firewalld service to load in the firewall changes
+    service:
+      name: firewalld
+      state: restarted
+
+  - name: change e-mail address for admin in httpd  Centos
+    tags: apache,apache2,centos,httpd
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: '^ServerAdmin'
+      line: ServerAdmin somebody@somewhere.net
+    when: ansible_distribution ==  "CentOS"
+    register: httpd
+
+  - name: Restart the httpd (Centos)
+    tags: apache,apache2,centos,httpd
+    service:
+      name: httpd
+      state: restarted
+    when: httpd.changed
+
+#  - name: change e-mail address for admin in apache2  Opensuse
+#    tags: apache,apache2,opensuse
+#    lineinfile:
+#      path: /etc/httpd/conf/httpd.conf
+#      regexp: '^ServerAdmin'
+#      line: ServerAdmin somebody@somewhere.net
+#    when: ansible_distribution ==  "openSUSE Leap"
+
+
+
+
+  - name: Copy file with owner and permission, using symbolic representation Opensuse
+    tags: apache,apache2,https
+    copy:
+      src: default_site.html
+      dest: /srv/www/htdocs/index.html
+      owner: wwwrun
+      group: wwwrun
+      mode: u=rw,g=r,o=r
+    when: ansible_distribution ==  "openSUSE Leap"
+
+  - name: Copy file with owner and permission, using symbolic representation Centos
+    tags: apache,apache2,https
+    copy:
+      src: default_site.html
+      dest: /var/www/html/index.html
+      owner: apache
+      group: apache
+      mode: u=rw,g=r,o=r
+    when: ansible_distribution ==  "CentOS"
+
+
+
+  - name: install httpd + php packages for  Centos
+    dnf:
+       name:
+         - httpd
+         - php
+       state: latest
+       update_cache: yes
+    when: ansible_distribution ==  "CentOS"
+
+
+  - name: ensure httpd  is running Centos
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+    when: ansible_distribution ==  "CentOS"
+
+#  end modifications
+#  end webservers
+
+# dbservers
+
+- hosts: db_servers
+  become: true
+  tasks:
+
+  - name: install mariadb  packages  Centos
+    tags: db,mariadb,centos
+    dnf:
+       name:
+         - mariadb-server
+         - php-mysqlnd
+       state: latest
+    when: ansible_distribution ==  "CentOS"
+
+
+  - name: install mariadb  packages Opensuse
+    tags: db,mariadb,opensuse 
+    zypper:
+       name:
+         - mariadb
+         - mariadb-tools
+       state: latest
+    when: ansible_distribution ==  "openSUSE Leap"
+
+# modifications !!!
+
+
+# end dbservers
+
+
+# file_servers
+- hosts: file_servers
+  become: true
+  tasks:
+
+  - name: install samba  package
+    zypper:
+       name:
+         - samba
+       state: latest
+       update_cache: yes
+    when: ansible_distribution ==  "openSUSE Leap"
+
+
+  - name: install samba  package for  Centos
+    dnf:
+       name:
+         - samba
+       state: latest
+       update_cache: yes
+    when: ansible_distribution ==  "CentOS"
+
+# modifications
+
+# end fileservers

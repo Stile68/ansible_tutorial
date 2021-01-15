@@ -1,0 +1,115 @@
+- name: install apache2 + php  packages
+  tags: apache,apache2,opensuse
+  zypper:
+     name:
+       - apache2
+       - apache2-mod_php7
+     state: latest
+     update_cache: yes
+  when: ansible_distribution ==  "openSUSE Leap"
+
+
+- name: install httpd + php packages for  Centos
+  tags: apache,httpd,centos
+  dnf:
+     name:
+       - httpd
+       - php
+     state: latest
+     update_cache: yes
+  when: ansible_distribution ==  "CentOS"
+
+
+- name: ensure httpd  is running Centos
+  tags: apache,httpd,centos
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+  when: ansible_distribution ==  "CentOS"
+
+# modifications
+- name: enable mod
+  shell: a2enmod php7
+  when: ansible_distribution ==  "openSUSE Leap"
+
+- name: ensure apache2  is running
+  service:
+    name: apache2
+    state: started
+    enabled: yes
+  when: ansible_distribution ==  "openSUSE Leap"
+
+- name: Open port 80 for http access
+  shell:  firewall-cmd --zone=public --add-service=http --permanent
+
+- name: Restart the firewalld service to load in the firewall changes
+  service:
+    name: firewalld
+    state: restarted
+
+- name: change e-mail address for admin in httpd  Centos
+  tags: apache,apache2,centos,httpd
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^ServerAdmin'
+    line: ServerAdmin somebody@somewhere.net
+  when: ansible_distribution ==  "CentOS"
+  register: httpd
+
+- name: Restart the httpd (Centos)
+  tags: apache,apache2,centos,httpd
+  service:
+    name: httpd
+    state: restarted
+  when: httpd.changed
+
+#  - name: change e-mail address for admin in apache2  Opensuse
+#    tags: apache,apache2,opensuse
+#    lineinfile:
+#      path: /etc/httpd/conf/httpd.conf
+#      regexp: '^ServerAdmin'
+#      line: ServerAdmin somebody@somewhere.net
+#    when: ansible_distribution ==  "openSUSE Leap"
+
+
+
+
+- name: Copy file with owner and permission, using symbolic representation Opensuse
+  tags: apache,apache2,https
+  copy:
+    src: default_site.html
+    dest: /srv/www/htdocs/index.html
+    owner: wwwrun
+    group: wwwrun
+    mode: u=rw,g=r,o=r
+  when: ansible_distribution ==  "openSUSE Leap"
+
+- name: Copy file with owner and permission, using symbolic representation Centos
+  tags: apache,apache2,https
+  copy:
+    src: default_site.html
+    dest: /var/www/html/index.html
+    owner: apache
+    group: apache
+    mode: u=rw,g=r,o=r
+  when: ansible_distribution ==  "CentOS"
+
+
+
+- name: install httpd + php packages for  Centos
+  dnf:
+    name:
+      - httpd
+      - php
+    state: latest
+    update_cache: yes
+  when: ansible_distribution ==  "CentOS"
+
+
+- name: ensure httpd  is running Centos
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes
+  when: ansible_distribution ==  "CentOS"
