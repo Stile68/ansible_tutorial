@@ -1,32 +1,22 @@
 - name: install apache2 + php  packages
-  tags: apache,apache2,opensuse
-  zypper:
+  tags: apache,apache2
+  package:
      name:
-       - apache2
-       - apache2-mod_php7
+       - "{{ apache_package_name }}"
+       - "{{ php_package_name }}"
      state: latest
      update_cache: yes
-  when: ansible_distribution ==  "openSUSE Leap"
 
 
-- name: install httpd + php packages for  Centos
-  tags: apache,httpd,centos
-  dnf:
-     name:
-       - httpd
-       - php
-     state: latest
-     update_cache: yes
-  when: ansible_distribution ==  "CentOS"
 
 
-- name: ensure httpd  is running Centos
+- name: ensure httpd  is running
   tags: apache,httpd,centos
   service:
-    name: httpd
+    name: "{{ apache_service }}"
     state: started
     enabled: yes
-  when: ansible_distribution ==  "CentOS"
+#  when: ansible_distribution ==  "CentOS"
 
 # modifications
 - name: enable mod
@@ -35,7 +25,7 @@
 
 - name: ensure apache2  is running
   service:
-    name: apache2
+    name: "{{ apache_service }}"
     state: started
     enabled: yes
   when: ansible_distribution ==  "openSUSE Leap"
@@ -53,16 +43,17 @@
   lineinfile:
     path: /etc/httpd/conf/httpd.conf
     regexp: '^ServerAdmin'
-    line: ServerAdmin somebody@somewhere.net
+    line: ServerAdmin somebody@somewhere.de
   when: ansible_distribution ==  "CentOS"
-  register: httpd
+#  register: apache
+  notify: restart_apache
 
-- name: Restart the httpd (Centos)
-  tags: apache,apache2,centos,httpd
-  service:
-    name: httpd
-    state: restarted
-  when: httpd.changed
+#- name: Restart the httpd (Centos)
+#  tags: apache,apache2,centos,httpd
+#  service:
+#    name: "{{ apache_service }}"
+#    state: restarted
+#  when: apache.changed
 
 #  - name: change e-mail address for admin in apache2  Opensuse
 #    tags: apache,apache2,opensuse
